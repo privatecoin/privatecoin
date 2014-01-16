@@ -1,9 +1,9 @@
-Building Litecoin
+Building Privatecoin
 
-See doc/readme-qt.rst for instructions on building Litecoin-Qt,
+See doc/readme-qt.rst for instructions on building Privatecoin-Qt,
 the intended-for-end-users, nice-graphical-interface, reference
-implementation of Litecoin.
+implementation of Privatecoin.
 
-See doc/build-*.txt for instructions on building litecoind,
+See doc/build-*.txt for instructions on building privatecoind,
 the intended-for-services, no-graphical-interface, reference
-implementation of Litecoin.
+implementation of Privatecoin.
