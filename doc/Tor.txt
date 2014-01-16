@@ -41,10 +41,10 @@ reachable from the Tor network. Add these lines to your /etc/tor/torrc (or equiv
 config file):
 
   HiddenServiceDir /var/lib/tor/privatecoin-service/
-  HiddenServicePort 9333 127.0.0.1:9333
+  HiddenServicePort 8777 127.0.0.1:8777
 
 The directory can be different of course, but (both) port numbers should be equal to
-your privatecoind's P2P listen port (9333 by default).
+your privatecoind's P2P listen port (8777 by default).
 
 -externalip=X   You can tell privatecoin about its publicly reachable address using
                 this option, and this can be a .onion address. Given the above
