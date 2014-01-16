@@ -50,7 +50,7 @@ static const unsigned int UNDOFILE_CHUNK_SIZE = 0x100000; // 1 MiB
 /** Fake height value used in CCoins to signify they are only in the memory pool (since 0.8) */
 static const unsigned int MEMPOOL_HEIGHT = 0x7FFFFFFF;
 /** Dust Soft Limit, allowed with additional fee per output */
-static const int64 DUST_SOFT_LIMIT = 100000; // 0.001 PVC
+static const int64 DUST_SOFT_LIMIT = 100000; // 0.001 LTC
 /** Dust Hard Limit, ignored as wallet inputs (mininput default) */
 static const int64 DUST_HARD_LIMIT = 1000;   // 0.00001 PVC mininput
 /** No amount larger than this (in satoshi) is valid
@@ -81,7 +81,7 @@ extern CScript COINBASE_FLAGS;
 extern CCriticalSection cs_main;
 extern std::map<uint256, CBlockIndex*> mapBlockIndex;
 extern std::set<CBlockIndex*, CBlockIndexWorkComparator> setBlockIndexValid;
-extern uint256 hashGenesisBlock;
+extern uint256 const hashGenesisBlock;
 extern CBlockIndex* pindexGenesisBlock;
 extern int nBestHeight;
 extern uint256 nBestChainWork;
@@ -1674,7 +1674,7 @@ public:
         phashBlock = NULL;
         pprev = NULL;
         pnext = NULL;
-        nHeight = 0;
+        nHeight = 1;
         nFile = 0;
         nDataPos = 0;
         nUndoPos = 0;
@@ -1695,7 +1695,7 @@ public:
         phashBlock = NULL;
         pprev = NULL;
         pnext = NULL;
-        nHeight = 0;
+        nHeight = 1;
         nFile = 0;
         nDataPos = 0;
         nUndoPos = 0;
