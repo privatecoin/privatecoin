@@ -1128,7 +1128,7 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
         return nProofOfWorkLimit;
 
     // Only change once per interval
-    if ((pindexLast->nHeight) % nInterval != 0)
+    if ((pindexLast->nHeight+1) % nInterval != 0)
     {
         // Special difficulty rule for testnet:
         if (fTestNet)
@@ -1153,7 +1153,7 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     // Privatecoin: This fixes an issue where a 51% attack can change difficulty at will.
     // Go back the full period unless it's the first retarget after genesis. Code courtesy of Art Forz
     int blockstogoback = nInterval-1;
-    if ((pindexLast->nHeight) != nInterval)
+    if ((pindexLast->nHeight+1) != nInterval)
         blockstogoback = nInterval;
 
     // Go back by what we want to be 14 days worth of blocks
@@ -1980,7 +1980,7 @@ bool CBlock::AddToBlockIndex(CValidationState &state, const CDiskBlockPos &pos)
         // Notify UI to display prev block's coinbase if it was ours
         static uint256 hashPrevBestCoinBase;
         UpdatedTransaction(hashPrevBestCoinBase);
-        hashPrevBestCoinBase = vtx.empty() ? 0 : GetTxHash(0);
+        hashPrevBestCoinBase = GetTxHash(0);
     }
 
     if (!pblocktree->Flush())
@@ -2092,7 +2092,7 @@ bool CBlock::CheckBlock(CValidationState &state, bool fCheckPOW, bool fCheckMerk
     // that can be verified before saving an orphan block.
 
     // Size limits
-    if ((vtx.empty() && 0 != hashPrevBlock) || vtx.size() > MAX_BLOCK_SIZE || ::GetSerializeSize(*this, SER_NETWORK, PROTOCOL_VERSION) > MAX_BLOCK_SIZE)
+    if (vtx.empty() || vtx.size() > MAX_BLOCK_SIZE || ::GetSerializeSize(*this, SER_NETWORK, PROTOCOL_VERSION) > MAX_BLOCK_SIZE)
         return state.DoS(100, error("CheckBlock() : size limits failed"));
 
     // Privatecoin: Special short-term limits to avoid 10,000 BDB lock limit:
@@ -2122,7 +2122,7 @@ bool CBlock::CheckBlock(CValidationState &state, bool fCheckPOW, bool fCheckMerk
         return state.Invalid(error("CheckBlock() : block timestamp too far in the future"));
 
     // First transaction must be coinbase, the rest must not be
-    if (!vtx.empty() && !vtx[0].IsCoinBase())
+    if (vtx.empty() || !vtx[0].IsCoinBase())
         return state.DoS(100, error("CheckBlock() : first tx is not coinbase"));
     for (unsigned int i = 1; i < vtx.size(); i++)
         if (vtx[i].IsCoinBase())
@@ -2171,7 +2171,7 @@ bool CBlock::AcceptBlock(CValidationState &state, CDiskBlockPos *dbp)
 
     // Get prev block index
     CBlockIndex* pindexPrev = NULL;
-    int nHeight = 1;
+    int nHeight = 0;
     if (hash != hashGenesisBlock) {
         map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(hashPrevBlock);
         if (mi == mapBlockIndex.end())
@@ -2759,7 +2759,69 @@ bool InitBlockIndex() {
     if (pindexGenesisBlock != NULL)
         return true;
 
-    return error("initBlockIndex() : genesis block missing");
+    // Use the provided setting for -txindex in the new database
+    fTxIndex = GetBoolArg("-txindex", false);
+    pblocktree->WriteFlag("txindex", fTxIndex);
+    printf("Initializing databases...\n");
+
+    // Only add the genesis block if not reindexing (in which case we reuse the one already on disk)
+    if (!fReindex) {
+        // Genesis Block:
+        // CBlock(hash=12a765e31ffd4059bada, PoW=0000050c34a64b415b6b, ver=1, hashPrevBlock=00000000000000000000, hashMerkleRoot=97ddfbbae6, nTime=1317972665, nBits=1e0ffff0, nNonce=2084524493, vtx=1)
+        //   CTransaction(hash=97ddfbbae6, ver=1, vin.size=1, vout.size=1, nLockTime=0)
+        //     CTxIn(COutPoint(0000000000, -1), coinbase 04ffff001d0104404e592054696d65732030352f4f63742f32303131205374657665204a6f62732c204170706c65e280997320566973696f6e6172792c2044696573206174203536)
+        //     CTxOut(nValue=50.00000000, scriptPubKey=040184710fa689ad5023690c80f3a4)
+        //   vMerkleTree: 97ddfbbae6
+
+        // Genesis block
+        const char* pszTimestamp = "Fin Times 24/Jan/2014 US softens tone on any Snowden deal";
+        CTransaction txNew;
+        txNew.vin.resize(1);
+        txNew.vout.resize(1);
+        txNew.vin[0].scriptSig = CScript() << 486604799 << CBigNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        txNew.vout[0].nValue = 50 * COIN;
+        txNew.vout[0].scriptPubKey = CScript() << ParseHex("040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9") << OP_CHECKSIG;
+        CBlock block;
+        block.vtx.push_back(txNew);
+        block.hashPrevBlock = 0;
+        block.hashMerkleRoot = block.BuildMerkleTree();
+        block.nVersion = 1;
+        block.nTime    = 1390585860;
+        block.nBits    = 0x1e0ffff0;
+        block.nNonce   = 2085216952;
+
+        if (fTestNet)
+        {
+            block.nTime    = 1390585860;
+            block.nNonce   = 2085216952;
+        }
+
+        //// debug print
+        uint256 hash = block.GetHash();
+        printf("%s\n", hash.ToString().c_str());
+        printf("%s\n", hashGenesisBlock.ToString().c_str());
+        printf("%s\n", block.hashMerkleRoot.ToString().c_str());
+        assert(block.hashMerkleRoot == uint256("0xd78e0c3ac4673d3af6c39fcc96c8f07a462cc25560e14f3178fc74a9047ce194"));
+        block.print();
+        assert(hash == hashGenesisBlock);
+
+        // Start new block file
+        try {
+            unsigned int nBlockSize = ::GetSerializeSize(block, SER_DISK, CLIENT_VERSION);
+            CDiskBlockPos blockPos;
+            CValidationState state;
+            if (!FindBlockPos(state, blockPos, nBlockSize+8, 0, block.nTime))
+                return error("LoadBlockIndex() : FindBlockPos failed");
+            if (!block.WriteToDisk(blockPos))
+                return error("LoadBlockIndex() : writing genesis block to disk failed");
+            if (!block.AddToBlockIndex(state, blockPos))
+                return error("LoadBlockIndex() : genesis block not accepted");
+        } catch(std::runtime_error &e) {
+            return error("LoadBlockIndex() : failed to initialize block database: %s", e.what());
+        }
+    }
+
+    return true;
 }
 
 
@@ -3444,11 +3506,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
             pindex = pindex->pnext;
         int nLimit = 500;
         printf("getblocks %d to %s limit %d\n", (pindex ? pindex->nHeight : -1), hashStop.ToString().c_str(), nLimit);
-        if (
-            !pindex
-        ) {
-            pindex = pindexGenesisBlock;
-        }
         for (; pindex; pindex = pindex->pnext)
         {
             if (pindex->GetBlockHash() == hashStop)
