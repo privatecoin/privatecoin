@@ -31,7 +31,7 @@ CTxMemPool mempool;
 unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
-uint256 hashGenesisBlock("0x12a765e31ffd4059bada1e25190f6e98c99d9714d334efa41a195a7e7e04bfe2");
+uint256 hashGenesisBlock("0x2655c9edbd81a4f50f114ac19b0e2ac712aa99c5fe9590d33cba98fc2af7054b");
 static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Privatecoin: starting difficulty is 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
@@ -1063,13 +1063,32 @@ uint256 static GetOrphanRoot(const CBlockHeader* pblock)
 
 int64 static GetBlockValue(int nHeight, int64 nFees)
 {
-    int64 nSubsidy = 50 * COIN;
-
-    // Subsidy is cut in half every 840000 blocks, which will occur approximately every 4 years
-    nSubsidy >>= (nHeight / 840000); // Privatecoin: 840k blocks in ~4 years
+    // Privatecoin: 210M in the first 6 months, 1.1% increase in coins per year
+    //              after that
+    int64 nSubsidy = 1996 * COIN;
+    int64 const half_year_blocks = 105192;
+    int64 remaining_height = nHeight;
+    int64 const decimal_shift = 10000;
+    int64 adaption[][2] = {
+        {   55,1},
+        {10000,2},
+        {10110,1},
+    };
+    int index = 0;
+    while (
+        half_year_blocks + 1 < remaining_height
+    ) {
+        remaining_height -= half_year_blocks;
+        nSubsidy *= adaption[index][0];
+        nSubsidy /= decimal_shift;
+        index = adaption[index][1];
+    }
 
     return nSubsidy + nFees;
 }
+
+static const int64 difficulty_decrease_max = 400;
+static const int64 difficulty_increase_max = 25;
 
 static const int64 nTargetTimespan = 3.5 * 24 * 60 * 60; // Privatecoin: 3.5 days
 static const int64 nTargetSpacing = 2.5 * 60; // Privatecoin: 2.5 minutes
@@ -1093,7 +1112,7 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
         // Maximum 400% adjustment...
         bnResult *= 4;
         // ... in best-case exactly 4-times-normal target time
-        nTime -= nTargetTimespan*4;
+        nTime -= nTargetTimespan*difficulty_decrease_max/100;
     }
     if (bnResult > bnProofOfWorkLimit)
         bnResult = bnProofOfWorkLimit;
@@ -1146,10 +1165,10 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     // Limit adjustment step
     int64 nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
     printf("  nActualTimespan = %"PRI64d"  before bounds\n", nActualTimespan);
-    if (nActualTimespan < nTargetTimespan/4)
-        nActualTimespan = nTargetTimespan/4;
-    if (nActualTimespan > nTargetTimespan*4)
-        nActualTimespan = nTargetTimespan*4;
+    if (nActualTimespan < nTargetTimespan*difficulty_increase_max/100)
+        nActualTimespan = nTargetTimespan*difficulty_increase_max/100;
+    if (nActualTimespan > nTargetTimespan*difficulty_decrease_max/100)
+        nActualTimespan = nTargetTimespan*difficulty_decrease_max/100;
 
     // Retarget
     CBigNum bnNew;
@@ -2719,10 +2738,10 @@ bool LoadBlockIndex()
 {
     if (fTestNet)
     {
-        pchMessageStart[0] = 0xfc;
-        pchMessageStart[1] = 0xc1;
-        pchMessageStart[2] = 0xb7;
-        pchMessageStart[3] = 0xdc;
+        pchMessageStart[0] = 0xfe;
+        pchMessageStart[1] = 0xc3;
+        pchMessageStart[2] = 0xb9;
+        pchMessageStart[3] = 0xde;
         hashGenesisBlock = uint256("0xf5ae71e26c74beacc88382716aced69cddf3dffff24f384e1808905e0188f68f");
     }
 
@@ -3056,7 +3075,7 @@ bool static AlreadyHave(const CInv& inv)
 // The message start string is designed to be unlikely to occur in normal data.
 // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
 // a large 4-byte int at any alignment.
-unsigned char pchMessageStart[4] = { 0xfb, 0xc0, 0xb6, 0xdb }; // Privatecoin: increase each by adding 2 to bitcoin's value.
+unsigned char pchMessageStart[4] = { 0xfd, 0xc2, 0xb8, 0xdd }; // Privatecoin: increase each by adding 2 to litecoin's value.
 
 
 void static ProcessGetData(CNode* pfrom)
