@@ -27,7 +27,7 @@ select Excluded processes, press Add, select privatecoin-qt.exe, OK, Save change
 
 The software automatically finds other nodes to connect to.  You can
 enable Universal Plug and Play using a menu entry or set your firewall
-to forward port 9333 (TCP) to your computer so you can receive
+to forward port 8777 (TCP) to your computer so you can receive
 incoming connections.  Privatecoin works without incoming connections,
 but allowing incoming connections helps the Privatecoin network.
 
