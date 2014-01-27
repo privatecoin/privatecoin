@@ -2742,6 +2742,7 @@ bool LoadBlockIndex()
         pchMessageStart[1] = 0xc3;
         pchMessageStart[2] = 0xb9;
         pchMessageStart[3] = 0xde;
+        // hashGenesisBlock = uint256("0x2655c9edbd81a4f50f114ac19b0e2ac712aa99c5fe9590d33cba98fc2af7054b"); // TODO: get this to compile so testnet works
     }
 
     //
