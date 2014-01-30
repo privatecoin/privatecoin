@@ -1,4 +1,4 @@
 from jsonrpc import ServiceProxy
-access = ServiceProxy("http://127.0.0.1:8776")
+access = ServiceProxy("http://127.0.0.1:7776")
 pwd = raw_input("Enter wallet passphrase: ")
 access.walletpassphrase(pwd, 60)
