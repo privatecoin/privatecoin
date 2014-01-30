@@ -1202,20 +1202,20 @@ void MapPort(bool)
 
 // hidden service seeds
 static const char *strMainNetOnionSeed[][1] = {
-    {"y3ja22vcerbb7wmi.onion"},
-    {"5u3aufnxyceietom.onion"},
-    {"a3u7ff4ltfhm2uat.onion"},
-    {"zjhwfdwpzenq3gve.onion"},
-    {"5ep565j4hld3zpj6.onion"},
+    {"ubzen4yxvgyv2xyq.onion"},
+    {"m2cwrb4s7k5mauem.onion"},
+    {"wahal7ismg62jd6h.onion"},
+    {"3tncasdl2wzzxwd4.onion"},
+    {"q5emppesrwdl724r.onion"},
     {NULL}
 };
 
 static const char *strTestNetOnionSeed[][1] = {
-    {"y3ja22vcerbb7wmi.onion"},
-    {"5u3aufnxyceietom.onion"},
-    {"a3u7ff4ltfhm2uat.onion"},
-    {"zjhwfdwpzenq3gve.onion"},
-    {"5ep565j4hld3zpj6.onion"},
+    {"ubzen4yxvgyv2xyq.onion"},
+    {"m2cwrb4s7k5mauem.onion"},
+    {"wahal7ismg62jd6h.onion"},
+    {"3tncasdl2wzzxwd4.onion"},
+    {"q5emppesrwdl724r.onion"},
     {NULL}
 };
 
