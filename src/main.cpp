@@ -1087,12 +1087,14 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
     return nSubsidy + nFees;
 }
 
-static const int64 difficulty_decrease_max = 400;
-static const int64 difficulty_increase_max = 25;
 
-static const int64 nTargetTimespan = 3.5 * 24 * 60 * 60; // Privatecoin: 3.5 days
-static const int64 nTargetSpacing = 2.5 * 60; // Privatecoin: 2.5 minutes
-static const int64 nInterval = nTargetTimespan / nTargetSpacing;
+static const int64 nTargetTimespan = 10 * 60; // 10 minutes
+static const int64 nTargetSpacing = 30; // 30 seconds
+static const int64 nInterval = nTargetTimespan / nTargetSpacing; // 20 blocks
+
+static const int64 difficulty_increase_max = 10;  // no more than 10% up
+static const int64 difficulty_decrease_max = 50; // no more than 50% down
+
 
 //
 // minimum amount of work that could possibly be required nTime after
@@ -1109,10 +1111,10 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
     bnResult.SetCompact(nBase);
     while (nTime > 0 && bnResult < bnProofOfWorkLimit)
     {
-        // Maximum 400% adjustment...
-        bnResult *= 4;
-        // ... in best-case exactly 4-times-normal target time
-        nTime -= nTargetTimespan*difficulty_decrease_max/100;
+        // limit work adjustment...
+        bnResult = bnResult*100/(100-difficulty_decrease_max);
+        // ... and target time
+        nTime -= nTargetTimespan*100/(100-difficulty_decrease_max);
     }
     if (bnResult > bnProofOfWorkLimit)
         bnResult = bnProofOfWorkLimit;
@@ -1165,10 +1167,12 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     // Limit adjustment step
     int64 nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
     printf("  nActualTimespan = %"PRI64d"  before bounds\n", nActualTimespan);
-    if (nActualTimespan < nTargetTimespan*difficulty_increase_max/100)
-        nActualTimespan = nTargetTimespan*difficulty_increase_max/100;
-    if (nActualTimespan > nTargetTimespan*difficulty_decrease_max/100)
-        nActualTimespan = nTargetTimespan*difficulty_decrease_max/100;
+    int64 nLowerBound = nTargetTimespan*100/(100+difficulty_increase_max);
+    int64 nUpperBound = nTargetTimespan*100/(100-difficulty_decrease_max);
+    if (nActualTimespan < nLowerBound)
+        nActualTimespan = nLowerBound;
+    if (nActualTimespan > nUpperBound)
+        nActualTimespan = nUpperBound;
 
     // Retarget
     CBigNum bnNew;
