@@ -32,7 +32,7 @@ unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
 uint256 const hashGenesisBlock("0x2a5ed765c3ab5da67be4ee4c90a519521cbabd62b3b0cfb2272d1670a8727a0a");
-static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Privatecoin: starting difficulty is 1 / 2^12
+static CBigNum bnProofOfWorkLimit(~uint256(0));
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
 uint256 nBestChainWork = 0;
@@ -1090,7 +1090,7 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
 static const int64 difficulty_decrease_max = 400;
 static const int64 difficulty_increase_max = 25;
 
-static const int64 nTargetTimespan = 3.5 * 24 * 60 * 60; // Privatecoin: 3.5 days
+static const int64 nTargetTimespan = 60 * 60; // Privatecoin: 1 hour
 static const int64 nTargetSpacing = 2.5 * 60; // Privatecoin: 2.5 minutes
 static const int64 nInterval = nTargetTimespan / nTargetSpacing;
 
