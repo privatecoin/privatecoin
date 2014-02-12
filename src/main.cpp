@@ -854,8 +854,8 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
 static const int64 difficulty_decrease_max = 400;
 static const int64 difficulty_increase_max = 25;
 
-static const int64 nTargetTimespan = 3.5 * 24 * 60 * 60; // Privatecoin: 3.5 days
-static const int64 nTargetSpacing = 2.5 * 60; // Privatecoin: 2.5 minutes
+static const int64 nTargetTimespan = 10 * 60; // Privatecoin: 10 minutes
+static const int64 nTargetSpacing = 0.5 * 60; // Privatecoin: 0.5 minutes
 static const int64 nInterval = nTargetTimespan / nTargetSpacing;
 
 //
@@ -1991,7 +1991,7 @@ bool LoadBlockIndex(bool fAllowNew)
         //   vMerkleTree: 97ddfbbae6
 
         // Genesis block
-        const char* pszTimestamp = "Fin Times 11/Feb/2014 Hollande Visits Silicon Valley";
+        const char* pszTimestamp = "Fin Times 11/Feb/2014 Hollande Visits Silicon Valley2";
         CTransaction txNew;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
