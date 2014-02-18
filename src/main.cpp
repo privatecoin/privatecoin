@@ -1094,6 +1094,11 @@ static const int64 nTargetTimespan = 3.5 * 24 * 60 * 60; // Privatecoin: 3.5 day
 static const int64 nTargetSpacing = 2.5 * 60; // Privatecoin: 2.5 minutes
 static const int64 nInterval = nTargetTimespan / nTargetSpacing;
 
+static const int64 max_difficulty_increase = 110;
+static const int64 max_difficulty_decrease = 50;
+static const int64 minTime = nTargetTimespan * 100 / max_difficulty_increase;
+static const int64 maxTime = nTargetTimespan * 100 / ( 100 - max_difficulty_decrease );
+
 //
 // minimum amount of work that could possibly be required nTime after
 // minimum work required was nBase
@@ -1109,10 +1114,10 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
     bnResult.SetCompact(nBase);
     while (nTime > 0 && bnResult < bnProofOfWorkLimit)
     {
-        // Maximum 400% adjustment...
-        bnResult *= 4;
-        // ... in best-case exactly 4-times-normal target time
-        nTime -= nTargetTimespan*difficulty_decrease_max/100;
+        // Maximum difficulty increase...
+        bnResult *= max_difficulty_increase / 100;
+        // ... associated elapsed timespan
+        nTime -= minTime;
     }
     if (bnResult > bnProofOfWorkLimit)
         bnResult = bnProofOfWorkLimit;
@@ -1165,10 +1170,10 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     // Limit adjustment step
     int64 nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
     printf("  nActualTimespan = %"PRI64d"  before bounds\n", nActualTimespan);
-    if (nActualTimespan < nTargetTimespan*difficulty_increase_max/100)
-        nActualTimespan = nTargetTimespan*difficulty_increase_max/100;
-    if (nActualTimespan > nTargetTimespan*difficulty_decrease_max/100)
-        nActualTimespan = nTargetTimespan*difficulty_decrease_max/100;
+    if (nActualTimespan < minTime)
+        nActualTimespan = minTime;
+    if (nActualTimespan > maxTime)
+        nActualTimespan = maxTime;
 
     // Retarget
     CBigNum bnNew;
