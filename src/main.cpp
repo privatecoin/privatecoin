@@ -1991,7 +1991,7 @@ bool LoadBlockIndex(bool fAllowNew)
         //   vMerkleTree: 97ddfbbae6
 
         // Genesis block
-        const char* pszTimestamp = "Fin Times 11/Feb/2014 Hollande Visits Silicon Valley5";
+        const char* pszTimestamp = "Fin Times 11/Feb/2014 Hollande Visits Silicon Valley6";
         CTransaction txNew;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
