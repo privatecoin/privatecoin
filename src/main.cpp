@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
+/ Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2012 The Bitcoin developers
 // Copyright (c) 2011-2012 Privatecoin Developers
 // Distributed under the MIT/X11 software license, see the accompanying
@@ -29,7 +29,7 @@ CTxMemPool mempool;
 unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
-uint256 hashGenesisBlock("0xaa1a30e85a04994415990bc0b22d93fd1114bb81de0d27982518819e631e6f91");
+uint256 hashGenesisBlock("0x957aee058196b3d737e66b2ae8a88216b6c25e008c082e1899c30497f8624c120");
 static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Privatecoin: starting difficulty is 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
@@ -1964,7 +1964,7 @@ bool LoadBlockIndex(bool fAllowNew)
         pchMessageStart[1] = 0xc3;
         pchMessageStart[2] = 0xb9;
         pchMessageStart[3] = 0xde;
-        hashGenesisBlock = uint256("0xaa1a30e85a04994415990bc0b22d93fd1114bb81de0d27982518819e631e6f91");
+        hashGenesisBlock = uint256("0x957aee058196b3d737e66b2ae8a88216b6c25e008c082e1899c30497f8624c120");
     }
 
     //
@@ -2005,12 +2005,12 @@ bool LoadBlockIndex(bool fAllowNew)
         block.nVersion = 1;
         block.nTime    = 1392140100;
         block.nBits    = 0x1e0ffff0;
-        block.nNonce   = 968889;
+        block.nNonce   = 1100087;
 
         if (fTestNet)
         {
             block.nTime    = 1392140100;
-            block.nNonce   = 968889;
+            block.nNonce   = 1100087;
         }
 
         //// debug print
@@ -2020,7 +2020,7 @@ bool LoadBlockIndex(bool fAllowNew)
         assert(block.hashMerkleRoot == uint256("0x9c7cb6fd39c3e6271a292cfee1f4040b22fdf2e5c0004851a5feada9dbb7a9ba"));
 
         // If genesis block hash does not match, then generate new genesis hash.
-        if (false && block.GetHash() != hashGenesisBlock)
+        if (true && block.GetHash() != hashGenesisBlock)
         {
             printf("Searching for genesis block...\n");
             // This will figure out a valid hash and Nonce if you're
