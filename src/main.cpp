@@ -1088,9 +1088,9 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
 }
 
 
-static const int64 nTargetTimespan = 10 * 60; // Privatecoin: 10 minutes
-static const int64 nTargetSpacing = 0.5 * 60; // Privatecoin: 0.5 minutes
-static const int64 nInterval = nTargetTimespan / nTargetSpacing; // 20 blocks
+static const int64 nTargetTimespan = 60 * 60; // Privatecoin: 60 minutes
+static const int64 nTargetSpacing = 2.5 * 60; // Privatecoin: 2.5 minutes
+static const int64 nInterval = nTargetTimespan / nTargetSpacing; // 24 blocks
 
 static const int64 max_difficulty_increase = 10;
 static const int64 max_difficulty_decrease = 50;
