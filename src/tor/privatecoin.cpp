@@ -1,6 +1,6 @@
 /* Copyright (c) 2009-2010 Satoshi Nakamoto
    Copyright (c) 2009-2012 The Bitcoin developers
-   Copyright (c) 2014 The Privatecoin developers */
+   Copyright (c) 2013-2014 The Privatecoin developers */
 /* See LICENSE for licensing information */
 
 #include "privatecoin.h"
