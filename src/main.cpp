@@ -1090,6 +1090,8 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
 static const int64 nTargetTimespan = 10 * 60; // Privatecoin: 10 minutes
 static const int64 nTargetSpacing = 0.5 * 60; // Privatecoin: 0.5 minutes
 static const int64 nInterval = nTargetTimespan / nTargetSpacing;
+static const int64 nMaxDifficultyIncrease = 10;
+static const int64 nMaxDifficultyDecrease = 50;
 
 //
 // minimum amount of work that could possibly be required nTime after
@@ -1163,13 +1165,13 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     int64 nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
     printf("  nActualTimespan = %"PRI64d"  before bounds\n", nActualTimespan);
 
-    int64 LimUp = nTargetTimespan * 100 / 110; // 110% up
-    int64 LimDown = nTargetTimespan * 2; // 200% down
+    int64 minTime = nTargetTimespan * 100 / (100 + nMaxDifficultyIncrease); // limit the difficulty change to no more than 10% up
+    int64 maxTime = nTargetTimespan * 100 / (100 - nMaxDifficultyDecrease); // limit the difficulty change to no more than 50% down
 
-    if (nActualTimespan < LimUp)
-        nActualTimespan = LimUp;
-    if (nActualTimespan > LimDown)
-        nActualTimespan = LimDown;
+    if (nActualTimespan < minTime)
+        nActualTimespan = minTime;
+    if (nActualTimespan > maxTime)
+        nActualTimespan = maxTime;
 
     // Retarget
     CBigNum bnNew;
@@ -1183,13 +1185,13 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     /// debug print
     printf("GetNextWorkRequired RETARGET\n");
     printf("nTargetTimespan = %"PRI64d"    nActualTimespan = %"PRI64d"\n", nTargetTimespan, nActualTimespan);
-    printf("Before: %08x  %s %15f\n", pindexLast->nBits, CBigNum().SetCompact(pindexLast->nBits).getuint256().ToString().c_str(), GetDifficulty(pindexLast->nBits));
-    printf("After:  %08x  %s %15f\n\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str(), GetDifficulty(bnNew.GetCompact()));
+    printf("Before: %08x  %s %15f\n", pindexLast->nBits, CBigNum().SetCompact(pindexLast->nBits).getuint256().ToString().c_str(), GetQuickDifficulty(pindexLast->nBits));
+    printf("After:  %08x  %s %15f\n\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str(), GetQuickDifficulty(bnNew.GetCompact()));
 
     return bnNew.GetCompact();
 }
 
-double GetDifficulty(const unsigned int nBits)
+double GetQuickDifficulty(const unsigned int nBits)
 {
     int nShift = (nBits >> 24) & 0xff;
 
