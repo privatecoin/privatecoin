@@ -356,7 +356,7 @@ unsigned int LimitOrphanTxSize(unsigned int nMaxOrphans)
 bool CTxOut::IsDust() const
 {
     // Privatecoin: IsDust() detection disabled, allows any valid dust to be relayed.
-    // The fees imposed on each dust txo is considered sufficient spam deterrant. 
+    // The fees imposed on each dust txo is considered sufficient spam deterrant.
     return false;
 }
 
@@ -1087,15 +1087,9 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
     return nSubsidy + nFees;
 }
 
-
 static const int64 nTargetTimespan = 10 * 60; // Privatecoin: 10 minutes
 static const int64 nTargetSpacing = 0.5 * 60; // Privatecoin: 0.5 minutes
 static const int64 nInterval = nTargetTimespan / nTargetSpacing;
-
-static const int64 max_difficulty_increase = 10;
-static const int64 max_difficulty_decrease = 50;
-static const int64 minTime = nTargetTimespan * 100 / ( 100 + max_difficulty_increase );
-static const int64 maxTime = nTargetTimespan * 100 / ( 100 - max_difficulty_decrease );
 
 //
 // minimum amount of work that could possibly be required nTime after
@@ -1112,10 +1106,10 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
     bnResult.SetCompact(nBase);
     while (nTime > 0 && bnResult < bnProofOfWorkLimit)
     {
-        // Maximum difficulty increase...
-        bnResult *= ( 100 + max_difficulty_increase ) / 100;
-        // ... associated elapsed timespan
-        nTime -= minTime;
+        // Maximum 200% adjustment...
+        bnResult *= 2;
+        // ... per timespan
+        nTime -= nTargetTimespan;
     }
     if (bnResult > bnProofOfWorkLimit)
         bnResult = bnProofOfWorkLimit;
@@ -1168,10 +1162,14 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     // Limit adjustment step
     int64 nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
     printf("  nActualTimespan = %"PRI64d"  before bounds\n", nActualTimespan);
-    if (nActualTimespan < minTime)
-        nActualTimespan = minTime;
-    if (nActualTimespan > maxTime)
-        nActualTimespan = maxTime;
+
+    int64 LimUp = nTargetTimespan * 100 / 110; // 110% up
+    int64 LimDown = nTargetTimespan * 2; // 200% down
+
+    if (nActualTimespan < LimUp)
+        nActualTimespan = LimUp;
+    if (nActualTimespan > LimDown)
+        nActualTimespan = LimDown;
 
     // Retarget
     CBigNum bnNew;
@@ -1185,10 +1183,30 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     /// debug print
     printf("GetNextWorkRequired RETARGET\n");
     printf("nTargetTimespan = %"PRI64d"    nActualTimespan = %"PRI64d"\n", nTargetTimespan, nActualTimespan);
-    printf("Before: %08x  %s\n", pindexLast->nBits, CBigNum().SetCompact(pindexLast->nBits).getuint256().ToString().c_str());
-    printf("After:  %08x  %s\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str());
+    printf("Before: %08x  %s %15f\n", pindexLast->nBits, CBigNum().SetCompact(pindexLast->nBits).getuint256().ToString().c_str(), GetDifficulty(pindexLast->nBits));
+    printf("After:  %08x  %s %15f\n\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str(), GetDifficulty(bnNew.GetCompact()));
 
     return bnNew.GetCompact();
+}
+
+double GetDifficulty(const unsigned int nBits)
+{
+    int nShift = (nBits >> 24) & 0xff;
+
+    double dDiff = (double) 0x0000ffff / (double)(nBits & 0x00ffffff);
+
+    while (nShift < 29)
+    {
+        dDiff *= 256.0;
+        nShift++;
+    }
+    while (nShift > 29)
+    {
+        dDiff /= 256.0;
+        nShift--;
+    }
+
+    return dDiff;
 }
 
 bool CheckProofOfWork(uint256 hash, unsigned int nBits)
