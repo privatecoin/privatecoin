@@ -21,7 +21,7 @@ For more information, see http://www.privatecoin.org.
 Running Privatecoin
 ----------------
 
-1. download xxx and xxx.
+1. download https://github.com/privatecoin/privatecoin/blob/master/bin/unix/tor_privatecoin and https://github.com/privatecoin/privatecoin/blob/master/bin/unix/privatecoind .
 2. copy to your PATH
 3. run tor_privatecoin (note: you must create ~/.privatecoin first)
 4. run privatecoind
