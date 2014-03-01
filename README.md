@@ -3,24 +3,29 @@ Privatecoin integration/staging tree
 
 http://www.privatecoin.org
 
-Copyright (c) 2009-2013 Bitcoin Developers
-Copyright (c) 2011-2013 Litecoin Developers
-Copyright (c) 2013-2014 Privatecoin Developers
+* Copyright (c) 2009-2013 Bitcoin Developers
+* Copyright (c) 2011-2013 Litecoin Developers
+* Copyright (c) 2013-2014 Privatecoin Developers
 
 What is Privatecoin?
 ----------------
 
-Privatecoin is a lite version of Bitcoin using scrypt as a proof-of-work algorithm.
- - 2.5 minute block targets
- - subsidy halves in 840k blocks (~4 years)
- - ~84 million total coins
+Privatecoin is a version of Litecoin that provides extra privacy features.
+ - 30 second block targets
+ - during the first 6 months, subsidy is 1996 coins per block, reduced thereafter.
+ - 210 million coins created in the first 6 months, increase 1.1% thereafter
+ - 20 blocks to retarget difficulty
 
-The rest is the same as Bitcoin.
- - 50 coins per block
- - 2016 blocks to retarget difficulty
+For more information, see http://www.privatecoin.org.
 
-For more information, as well as an immediately useable, binary version of
-the Privatecoin client sofware, see http://www.privatecoin.org.
+Running Privatecoin
+----------------
+
+1. download https://github.com/privatecoin/privatecoin/releases/download/test/tor_privatecoin and https://github.com/privatecoin/privatecoin/releases/download/test/privatecoind .
+2. copy to your PATH
+3. run tor_privatecoin (note: you must create ~/.privatecoin first)
+4. run privatecoind
+
 
 License
 -------
@@ -69,7 +74,7 @@ Unit tests for the core code are in `src/test/`. To compile and run them:
 
 Unit tests for the GUI code are in `src/qt/test/`. To compile and run them:
 
-    qmake BITCOIN_QT_TEST=1 -o Makefile.test bitcoin-qt.pro
+    qmake BITCOIN_QT_TEST=1 -o Makefile.test privatecoin-qt.pro
     make -f Makefile.test
     ./privatecoin-qt_test
 
