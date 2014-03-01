@@ -29,9 +29,7 @@ CCriticalSection cs_main;
 
 CTxMemPool mempool;
 unsigned int nTransactionsUpdated = 0;
-
-map<uint256, CBlockIndex*> mapBlockIndex;
-uint256 const hashGenesisBlock("0xhash");
+uint256 const hashGenesisBlock("0xb84efb47abd254b08b0ce184dd770cc9134142b6d9a88f3dc48410834e943dc4");
 static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Privatecoin: starting difficulty is 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
@@ -2811,12 +2809,12 @@ bool InitBlockIndex() {
         block.nVersion = 1;
         block.nTime    = 1393592880;
         block.nBits    = 0x1e0ffff0;
-        block.nNonce   = 0;
+        block.nNonce   = 1216033;
 
         if (fTestNet)
         {
             block.nTime    = 1393592880;
-            block.nNonce   = 0;
+            block.nNonce   = 1216033;
         }
 
         //// debug print
