@@ -31,8 +31,8 @@ CTxMemPool mempool;
 unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
-uint256 const hashGenesisBlock("0x2a5ed765c3ab5da67be4ee4c90a519521cbabd62b3b0cfb2272d1670a8727a0a");
-static CBigNum bnProofOfWorkLimit(~uint256(0));
+uint256 const hashGenesisBlock("0x4df417b777f0e78535850a55381de7e0c952ae31335116df4e54c50a175c4831");
+static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Privatecoin: starting difficulty is 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
 uint256 nBestChainWork = 0;
@@ -1087,12 +1087,11 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
     return nSubsidy + nFees;
 }
 
-static const int64 difficulty_decrease_max = 400;
-static const int64 difficulty_increase_max = 25;
-
-static const int64 nTargetTimespan = 60 * 60; // Privatecoin: 1 hour
-static const int64 nTargetSpacing = 2.5 * 60; // Privatecoin: 2.5 minutes
+static const int64 nTargetTimespan = 10 * 60; // Privatecoin: 10 minutes
+static const int64 nTargetSpacing = 0.5 * 60; // Privatecoin: 0.5 minutes
 static const int64 nInterval = nTargetTimespan / nTargetSpacing;
+static const int64 nMaxDifficultyIncrease = 10;
+static const int64 nMaxDifficultyDecrease = 50;
 
 //
 // minimum amount of work that could possibly be required nTime after
@@ -1109,10 +1108,10 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
     bnResult.SetCompact(nBase);
     while (nTime > 0 && bnResult < bnProofOfWorkLimit)
     {
-        // Maximum 400% adjustment...
-        bnResult *= 4;
-        // ... in best-case exactly 4-times-normal target time
-        nTime -= nTargetTimespan*difficulty_decrease_max/100;
+        // Maximum 200% adjustment...
+        bnResult *= 2;
+        // ... per timespan
+        nTime -= nTargetTimespan;
     }
     if (bnResult > bnProofOfWorkLimit)
         bnResult = bnProofOfWorkLimit;
@@ -1128,7 +1127,7 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
         return nProofOfWorkLimit;
 
     // Only change once per interval
-    if ((pindexLast->nHeight) % nInterval != 0)
+    if ((pindexLast->nHeight+1) % nInterval != 0)
     {
         // Special difficulty rule for testnet:
         if (fTestNet)
@@ -1153,7 +1152,7 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     // Privatecoin: This fixes an issue where a 51% attack can change difficulty at will.
     // Go back the full period unless it's the first retarget after genesis. Code courtesy of Art Forz
     int blockstogoback = nInterval-1;
-    if ((pindexLast->nHeight) != nInterval)
+    if ((pindexLast->nHeight+1) != nInterval)
         blockstogoback = nInterval;
 
     // Go back by what we want to be 14 days worth of blocks
@@ -1165,10 +1164,14 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     // Limit adjustment step
     int64 nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
     printf("  nActualTimespan = %"PRI64d"  before bounds\n", nActualTimespan);
-    if (nActualTimespan < nTargetTimespan*difficulty_increase_max/100)
-        nActualTimespan = nTargetTimespan*difficulty_increase_max/100;
-    if (nActualTimespan > nTargetTimespan*difficulty_decrease_max/100)
-        nActualTimespan = nTargetTimespan*difficulty_decrease_max/100;
+
+    int64 minTime = nTargetTimespan * 100 / (100 + nMaxDifficultyIncrease); // limit the difficulty change to no more than 10% up
+    int64 maxTime = nTargetTimespan * 100 / (100 - nMaxDifficultyDecrease); // limit the difficulty change to no more than 50% down
+
+    if (nActualTimespan < minTime)
+        nActualTimespan = minTime;
+    if (nActualTimespan > maxTime)
+        nActualTimespan = maxTime;
 
     // Retarget
     CBigNum bnNew;
@@ -1182,10 +1185,30 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     /// debug print
     printf("GetNextWorkRequired RETARGET\n");
     printf("nTargetTimespan = %"PRI64d"    nActualTimespan = %"PRI64d"\n", nTargetTimespan, nActualTimespan);
-    printf("Before: %08x  %s\n", pindexLast->nBits, CBigNum().SetCompact(pindexLast->nBits).getuint256().ToString().c_str());
-    printf("After:  %08x  %s\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str());
+    printf("Before: %08x  %s %15f\n", pindexLast->nBits, CBigNum().SetCompact(pindexLast->nBits).getuint256().ToString().c_str(), GetQuickDifficulty(pindexLast->nBits));
+    printf("After:  %08x  %s %15f\n\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str(), GetQuickDifficulty(bnNew.GetCompact()));
 
     return bnNew.GetCompact();
+}
+
+double GetQuickDifficulty(const unsigned int nBits)
+{
+    int nShift = (nBits >> 24) & 0xff;
+
+    double dDiff = (double) 0x0000ffff / (double)(nBits & 0x00ffffff);
+
+    while (nShift < 29)
+    {
+        dDiff *= 256.0;
+        nShift++;
+    }
+    while (nShift > 29)
+    {
+        dDiff /= 256.0;
+        nShift--;
+    }
+
+    return dDiff;
 }
 
 bool CheckProofOfWork(uint256 hash, unsigned int nBits)
@@ -1980,7 +2003,7 @@ bool CBlock::AddToBlockIndex(CValidationState &state, const CDiskBlockPos &pos)
         // Notify UI to display prev block's coinbase if it was ours
         static uint256 hashPrevBestCoinBase;
         UpdatedTransaction(hashPrevBestCoinBase);
-        hashPrevBestCoinBase = vtx.empty() ? 0 : GetTxHash(0);
+        hashPrevBestCoinBase = GetTxHash(0);
     }
 
     if (!pblocktree->Flush())
@@ -2092,7 +2115,7 @@ bool CBlock::CheckBlock(CValidationState &state, bool fCheckPOW, bool fCheckMerk
     // that can be verified before saving an orphan block.
 
     // Size limits
-    if ((vtx.empty() && 0 != hashPrevBlock) || vtx.size() > MAX_BLOCK_SIZE || ::GetSerializeSize(*this, SER_NETWORK, PROTOCOL_VERSION) > MAX_BLOCK_SIZE)
+    if (vtx.empty() || vtx.size() > MAX_BLOCK_SIZE || ::GetSerializeSize(*this, SER_NETWORK, PROTOCOL_VERSION) > MAX_BLOCK_SIZE)
         return state.DoS(100, error("CheckBlock() : size limits failed"));
 
     // Privatecoin: Special short-term limits to avoid 10,000 BDB lock limit:
@@ -2122,7 +2145,7 @@ bool CBlock::CheckBlock(CValidationState &state, bool fCheckPOW, bool fCheckMerk
         return state.Invalid(error("CheckBlock() : block timestamp too far in the future"));
 
     // First transaction must be coinbase, the rest must not be
-    if (!vtx.empty() && !vtx[0].IsCoinBase())
+    if (vtx.empty() || !vtx[0].IsCoinBase())
         return state.DoS(100, error("CheckBlock() : first tx is not coinbase"));
     for (unsigned int i = 1; i < vtx.size(); i++)
         if (vtx[i].IsCoinBase())
@@ -2171,7 +2194,7 @@ bool CBlock::AcceptBlock(CValidationState &state, CDiskBlockPos *dbp)
 
     // Get prev block index
     CBlockIndex* pindexPrev = NULL;
-    int nHeight = 1;
+    int nHeight = 0;
     if (hash != hashGenesisBlock) {
         map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(hashPrevBlock);
         if (mi == mapBlockIndex.end())
@@ -2759,7 +2782,114 @@ bool InitBlockIndex() {
     if (pindexGenesisBlock != NULL)
         return true;
 
-    return error("initBlockIndex() : genesis block missing");
+    // Use the provided setting for -txindex in the new database
+    fTxIndex = GetBoolArg("-txindex", false);
+    pblocktree->WriteFlag("txindex", fTxIndex);
+    printf("Initializing databases...\n");
+
+    // Only add the genesis block if not reindexing (in which case we reuse the one already on disk)
+    if (!fReindex) {
+        // Genesis Block:
+        // CBlock(hash=12a765e31ffd4059bada, PoW=0000050c34a64b415b6b, ver=1, hashPrevBlock=00000000000000000000, hashMerkleRoot=97ddfbbae6, nTime=1317972665, nBits=1e0ffff0, nNonce=2084524493, vtx=1)
+        //   CTransaction(hash=97ddfbbae6, ver=1, vin.size=1, vout.size=1, nLockTime=0)
+        //     CTxIn(COutPoint(0000000000, -1), coinbase 04ffff001d0104404e592054696d65732030352f4f63742f32303131205374657665204a6f62732c204170706c65e280997320566973696f6e6172792c2044696573206174203536)
+        //     CTxOut(nValue=50.00000000, scriptPubKey=040184710fa689ad5023690c80f3a4)
+        //   vMerkleTree: 97ddfbbae6
+
+        // Genesis block
+        const char* pszTimestamp = "aaaaaaaaaaa";
+        CTransaction txNew;
+        txNew.vin.resize(1);
+        txNew.vout.resize(1);
+        txNew.vin[0].scriptSig = CScript() << 486604799 << CBigNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        txNew.vout[0].nValue = 50 * COIN;
+        txNew.vout[0].scriptPubKey = CScript() << ParseHex("04d3abbf4e25492fc1d950896fc0167a4270077612176264f7f060d5a030aa096a44cd789111a0948e79e5eb3eab08b1c3ddca17a463dfd97628423fa7c7a36253") << OP_CHECKSIG;
+        CBlock block;
+        block.vtx.push_back(txNew);
+        block.hashPrevBlock = 0;
+        block.hashMerkleRoot = block.BuildMerkleTree();
+        block.nVersion = 1;
+        block.nTime    = 1393395149;
+        block.nBits    = 0x1e0ffff0;
+        block.nNonce   = 2084658606;
+
+        if (fTestNet)
+        {
+            block.nTime    = 1393395198;
+            block.nNonce   = 385270584;
+        }
+
+        //// debug print
+        uint256 hash = block.GetHash();
+        printf("%s\n", hash.ToString().c_str());
+        printf("%s\n", hashGenesisBlock.ToString().c_str());
+        printf("%s\n", block.hashMerkleRoot.ToString().c_str());
+        assert(block.hashMerkleRoot == uint256("0x4da715ee7947d7543d7364a7c5206cc1dd8ede24b107e7707fa7ac34d1c28746"));
+
+        // If genesis block hash does not match, then generate new genesis hash.
+        if (false && block.GetHash() != hashGenesisBlock)
+        {
+            printf("Searching for genesis block...\n");
+            // This will figure out a valid hash and Nonce if you're
+            // creating a different genesis block:
+            uint256 hashTarget = CBigNum().SetCompact(block.nBits).getuint256();
+            uint256 thash;
+            char scratchpad[SCRYPT_SCRATCHPAD_SIZE];
+
+            loop
+            {
+#if defined(USE_SSE2)
+                // Detection would work, but in cases where we KNOW it always has SSE2,
+                // it is faster to use directly than to use a function pointer or conditional.
+#if defined(_M_X64) || defined(__x86_64__) || defined(_M_AMD64) || (defined(MAC_OSX) && defined(__i386__))
+                // Always SSE2: x86_64 or Intel MacOS X
+                scrypt_1024_1_1_256_sp_sse2(BEGIN(block.nVersion), BEGIN(thash), scratchpad);
+#else
+                // Detect SSE2: 32bit x86 Linux or Windows
+                scrypt_1024_1_1_256_sp(BEGIN(block.nVersion), BEGIN(thash), scratchpad);
+#endif
+#else
+                // Generic scrypt
+                scrypt_1024_1_1_256_sp_generic(BEGIN(block.nVersion), BEGIN(thash), scratchpad);
+#endif
+                if (thash <= hashTarget)
+                    break;
+                if ((block.nNonce & 0xFFF) == 0)
+                {
+                    printf("nonce %08X: hash = %s (target = %s)\n", block.nNonce, thash.ToString().c_str(), hashTarget.ToString().c_str());
+                }
+                ++block.nNonce;
+                if (block.nNonce == 0)
+                {
+                    printf("NONCE WRAPPED, incrementing time\n");
+                    ++block.nTime;
+                }
+            }
+            printf("block.nTime = %u \n", block.nTime);
+            printf("block.nNonce = %u \n", block.nNonce);
+            printf("block.GetHash = %s\n", block.GetHash().ToString().c_str());
+        }
+
+        block.print();
+        assert(hash == hashGenesisBlock);
+
+        // Start new block file
+        try {
+            unsigned int nBlockSize = ::GetSerializeSize(block, SER_DISK, CLIENT_VERSION);
+            CDiskBlockPos blockPos;
+            CValidationState state;
+            if (!FindBlockPos(state, blockPos, nBlockSize+8, 0, block.nTime))
+                return error("LoadBlockIndex() : FindBlockPos failed");
+            if (!block.WriteToDisk(blockPos))
+                return error("LoadBlockIndex() : writing genesis block to disk failed");
+            if (!block.AddToBlockIndex(state, blockPos))
+                return error("LoadBlockIndex() : genesis block not accepted");
+        } catch(std::runtime_error &e) {
+            return error("LoadBlockIndex() : failed to initialize block database: %s", e.what());
+        }
+    }
+
+    return true;
 }
 
 
@@ -3012,7 +3142,7 @@ bool static AlreadyHave(const CInv& inv)
 // The message start string is designed to be unlikely to occur in normal data.
 // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
 // a large 4-byte int at any alignment.
-unsigned char pchMessageStart[4] = { 0xfd, 0xc2, 0xb8, 0xdd }; // Privatecoin: increase each by adding 2 to litecoin's value.
+unsigned char pchMessageStart[4] = { 0xfd, 0xc2, 0xb8, 0xdd }; // Privatecoin: increase each by adding 2 to bitcoin's value.
 
 
 void static ProcessGetData(CNode* pfrom)
@@ -3444,11 +3574,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
             pindex = pindex->pnext;
         int nLimit = 500;
         printf("getblocks %d to %s limit %d\n", (pindex ? pindex->nHeight : -1), hashStop.ToString().c_str(), nLimit);
-        if (
-            !pindex
-        ) {
-            pindex = pindexGenesisBlock;
-        }
         for (; pindex; pindex = pindex->pnext)
         {
             if (pindex->GetBlockHash() == hashStop)
@@ -4757,3 +4882,4 @@ public:
         mapOrphanTransactions.clear();
     }
 } instance_of_cmaincleanup;
+
